@@ -273,8 +273,8 @@ const MOLS = [{"id":"m1","lv":1,"a":[["C",-0.5,-0.0,3],["O",0.5,-0.0,1]],"b":[[0
 
 // ENGINE START — pure functions: find functional groups from the atom/bond graph and grade answers.
 const TYPES = ['alcohol','ether','amine','aldehyde','ketone','acid','amide','aromatic','ester'];
-const NAME = {alcohol:'Alcohol',ether:'Ether',amine:'Amine',aldehyde:'Aldehyde',ketone:'Ketone',acid:'Carboxylic acid',amide:'Amide',aromatic:'Aromatic',ester:'Ester'};
-const LOWER = {alcohol:'an alcohol',ether:'an ether',amine:'an amine',aldehyde:'an aldehyde',ketone:'a ketone',acid:'a carboxylic acid',amide:'an amide',aromatic:'an aromatic ring',ester:'an ester'};
+const NAME = {alcohol:'Alcohol',ether:'Ether',amine:'Amine',aldehyde:'Aldehyde',ketone:'Ketone',acid:'Carboxylic acid',amide:'Amide',aromatic:'Phenyl',ester:'Ester'};
+const LOWER = {alcohol:'an alcohol',ether:'an ether',amine:'an amine',aldehyde:'an aldehyde',ketone:'a ketone',acid:'a carboxylic acid',amide:'an amide',aromatic:'a phenyl group',ester:'an ester'};
 
 function analyze(mol){
   const A = mol.a.map((a,i)=>({i,el:a[0],x:a[1],y:a[2],h:a[3],nb:[]}));
@@ -358,7 +358,7 @@ function why(info, g){
     case 'ketone': return 'A C=O whose carbon is bonded to two other carbons.';
     case 'acid': return 'A C=O whose carbon also carries an O–H (–COOH).';
     case 'amide': return 'A C=O whose carbon is bonded directly to a nitrogen.';
-    case 'aromatic': return 'A benzene ring: six carbons in a ring with alternating double bonds.';
+    case 'aromatic': return 'A phenyl group: a benzene ring of six carbons with alternating double bonds.';
     case 'ester': return 'A C=O whose carbon is bonded to an O that leads to another carbon (–COO–C).';
   }
 }
@@ -388,8 +388,8 @@ const PAIR = {
   'acid>ester':'The single-bonded O has a carbon on it, not an H, so this is an <b>ester</b>, not a carboxylic acid.',
   'ester>acid':'The single-bonded O has an H (O–H), so this is a <b>carboxylic acid</b>, not an ester.',
   'ester>ether':'This O is bonded to two carbons and neither has a C=O, so it is an <b>ether</b>.',
-  'amine>aromatic':'Those atoms are carbons in a benzene ring, so they form an <b>aromatic</b> ring.',
-  'alcohol>aromatic':'Those atoms are carbons in a benzene ring, so they form an <b>aromatic</b> ring.',
+  'amine>aromatic':'Those atoms are carbons in a benzene ring, so they form a <b>phenyl</b> group.',
+  'alcohol>aromatic':'Those atoms are carbons in a benzene ring, so they form a <b>phenyl</b> group.',
 };
 const MISSING = {
   acid:'Yes, it’s a carboxylic acid. Now select the whole –COOH: the C=O carbon, its O, <b>and</b> the O–H.',
@@ -397,7 +397,7 @@ const MISSING = {
   amide:'Yes, it’s an amide. Select the C=O carbon, its O, <b>and</b> the N.',
   aldehyde:'Yes, it’s an aldehyde. Select the C=O carbon, its O, <b>and</b> the H on that carbon.',
   ketone:'Yes, it’s a ketone. Select both the C=O carbon and its O.',
-  aromatic:'Yes, it’s an aromatic ring. Select all six carbons of the ring.',
+  aromatic:'Yes, it’s a phenyl group. Select all six carbons of the ring.',
 };
 const EXTRA = {
   alcohol:'Select just the O–H. You may include the carbon it’s on, but nothing more.',
@@ -408,7 +408,7 @@ const EXTRA = {
   ester:'An ester is the C=O carbon, its O, the single-bonded O, and the carbon attached to that O. Nothing else belongs.',
   aldehyde:'An aldehyde is the C=O carbon, its O, and its H. The carbon chain is not part of it.',
   ketone:'A ketone is just the C=O carbon and its O. The carbons on either side are not part of it.',
-  aromatic:'An aromatic ring is just the six ring carbons. Leave out the atoms attached to the ring.',
+  aromatic:'A phenyl group is just the six ring carbons. Leave out the atoms attached to the ring.',
 };
 const FOCUS = {alcohol:'O–H',ether:'O',amine:'N',amide:'C=O and N',acid:'–COOH'};
 
@@ -428,7 +428,7 @@ function evaluate(info, sel, label, found){
       const g = G[main], stray = S.filter(x=>!g.req.includes(x) && !g.opt.includes(x));
       const holders = stray.every(x=>A[x].el==='C' && g.req.some(r=>A[r].el!=='C' && A[r].nb.some(n=>n.j===x)));
       if (holders){
-        const other = [...new Set(touched.filter(k=>k!==main).map(k=>G[k].type==='aromatic' ? 'aromatic ring' : NAME[G[k].type].toLowerCase()))].join(' / ');
+        const other = [...new Set(touched.filter(k=>k!==main).map(k=>G[k].type==='aromatic' ? 'phenyl ring' : NAME[G[k].type].toLowerCase()))].join(' / ');
         return {kind:'near', msg:`Right group! But the carbon it’s attached to belongs to the <b>${other}</b>, so leave that carbon out and select just the ${FOCUS[g.type]||'group'}.`};
       }
     }
@@ -466,7 +466,7 @@ const BADGES = [
   {id:'flawless', icon:'💎', name:'Flawless', desc:'Finish 10 molecules with no mistakes', test:()=>stats.perfect>=10},
   {id:'streak10', icon:'🔥', name:'On Fire', desc:'Reach a 10-group streak', test:()=>stats.bestStreak>=10},
   {id:'acid', icon:'🧪', name:'Acid Test', desc:'Find 15 carboxylic acids', test:()=>stats.g.acid.r>=15},
-  {id:'ring', icon:'⬡', name:'Ring Leader', desc:'Find 15 aromatic rings', test:()=>stats.g.aromatic.r>=15},
+  {id:'ring', icon:'⬡', name:'Ring Leader', desc:'Find 15 phenyl groups', test:()=>stats.g.aromatic.r>=15},
   {id:'nitro', icon:'🧭', name:'N-spector', desc:'Find 10 amines and 10 amides', test:()=>stats.g.amine.r>=10&&stats.g.amide.r>=10},
   {id:'carbonyl', icon:'🎯', name:'Carbonyl Sorter', desc:'Find 5 each: aldehyde, ketone, acid, amide', test:()=>['aldehyde','ketone','acid','amide'].every(t=>stats.g[t].r>=5)},
   {id:'all8', icon:'🌈', name:'Full Spectrum', desc:'Find every one of the 8 core groups', test:()=>CORE.every(t=>stats.g[t].r>=1)},
@@ -607,9 +607,9 @@ function drawDynamic(){
     if (show) under += blob(info, g.req, gcol(g.type), k===S.justFound?'halo-in':'', g.cycle);
     if (show && (S.mode!=='study' || S.studyPick===null || S.studyPick===k)) over += tag(info, g, gcol(g.type), placed, k===S.justFound);
   });
-  if (S.mode==='quick' && S.qTarget!==null){
-    const qg = G[S.qTarget];
-    under += blob(info, qg.req, 'var(--accent)', 'target', G[S.qTarget].cycle).replace('opacity=".28"','opacity=".35"');
+  const qg = S.mode==='quick' && S.qTarget!==null ? G[S.qTarget] : null;
+  if (qg){
+    under += blob(info, qg.req, 'var(--accent)', 'target', qg.cycle).replace('opacity=".28"','opacity=".35"');
   }
   if (S.mode==='study' && S.studyPick!==null){
     const g = G[S.studyPick];
@@ -663,6 +663,7 @@ let drag = null;
 const canSelect = () => (S.mode==='practice' || (S.mode==='challenge' && S.running)) && !S.done && !S.revealed;
 svg.addEventListener('pointerdown', e=>{
   const p = toSvg(e);
+  if (S.mode==='quick'){ quickContinue(); return; }
   if (S.mode==='study'){
     const a = nearest(p, 0.5); const G = INFO[S.idx].G;
     const k = a===null ? -1 : G.findIndex(g=>g.req.includes(a));
@@ -812,7 +813,7 @@ function moleculeDone(){
 
 /* ---------------- modes ---------------- */
 function loadMolecule(i){
-  S.idx=i; S.sel.clear(); S.found.clear(); S.hinted.clear(); S.hint=null; S.mistakes=0; S.revealed=false; S.done=false; S.studyPick=null;
+  S.idx=i; S.qTarget=null; S.sel.clear(); S.found.clear(); S.hinted.clear(); S.hint=null; S.mistakes=0; S.revealed=false; S.done=false; S.studyPick=null;
   drawMolecule(); drawDynamic(); updateChips();
   $('levelPill').textContent = `Level ${MOLS[i].lv}`;
 }
@@ -828,7 +829,7 @@ function nextMolecule(){
 
 function setMode(m){
   stopTimer();
-  S.mode = m; S.running=false; S.ended=false; S.score=0; S.streak=0; S.qTarget=null;
+  S.mode = m; S.running=false; S.ended=false; S.paused=false; S.qSeq=(S.qSeq||0)+1; S.score=0; S.streak=0; S.qTarget=null;
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.mode===m));
   $('stage').classList.toggle('static', m==='quick' || m==='study');
   $('overlay').hidden = true;
@@ -848,7 +849,7 @@ function startTimer(sec){
   S.timeLeft = S.timeTotal = sec; lastTick = performance.now();
   timerId = setInterval(()=>{
     const now = performance.now(), dt = (now-lastTick)/1000; lastTick = now;
-    if (S.paused || document.hidden) return;
+    if (S.paused || S.modal || document.hidden) return;
     S.timeLeft = Math.max(0, S.timeLeft - dt);
     renderTimer();
     if (S.timeLeft<=0) endRun();
@@ -880,7 +881,7 @@ function startRun(m){
   renderStatus(); renderActions(); renderTimer();
 }
 function endRun(){
-  stopTimer(); S.running=false; S.paused=false; S.ended=true;
+  stopTimer(); S.running=false; S.paused=false; S.ended=true; S.qSeq=(S.qSeq||0)+1;
   feedback('', 'Round over', 'Press <b>Play again</b> for another round, or switch to Practice to work on the groups you missed.');
   const m = S.mode;
   let newBest=false, html;
@@ -902,14 +903,15 @@ function endRun(){
 }
 const qBag = [];
 function nextQuick(){
+  S.qSeq = (S.qSeq||0) + 1;
   if (!qBag.length){ qBag.push(...CORE, ...CORE); for (let i=qBag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [qBag[i],qBag[j]]=[qBag[j],qBag[i]]; } }
   const t = qBag.pop();
   const pool = [];
   INFO.forEach((info,i)=>info.G.forEach((g,k)=>{ if (g.type===t && i!==S.idx) pool.push([i,k]); }));
   const [i,k] = pool[Math.floor(Math.random()*pool.length)];
-  loadMolecule(i); S.qTarget = k; S.paused=false; drawDynamic();
+  loadMolecule(i); S.qTarget = k; S.paused = false; drawDynamic();
   feedback('', 'What group is highlighted?', 'Tap its name (or press its number key).');
-  renderActions();
+  renderStatus(); renderActions();
 }
 function quickAnswer(type, chipEl){
   if (!S.running || S.paused || S.qTarget===null) return;
@@ -918,15 +920,19 @@ function quickAnswer(type, chipEl){
     S.qCorrect++; S.streak++; stats.bestStreak=Math.max(stats.bestStreak,S.streak); stats.g[g.type].r++;
     floatText('+1', chipEl, gcol(g.type));
     feedback('good', `${NAME[g.type]}!`, why(info,g));
-    S.paused = true; setTimeout(()=>{ if (S.running) nextQuick(); renderStatus(); }, 650);
+    S.paused = 'correct';
+    const seq = S.qSeq;
+    setTimeout(()=>{ if (S.running && S.mode==='quick' && S.qSeq===seq) nextQuick(); }, 650);
   } else {
-    S.qWrong++; S.streak=0; stats.g[g.type].m++; S.paused = true; shake();
+    S.qWrong++; S.streak=0; stats.g[g.type].m++; S.paused = 'wrong'; shake();
     const sel = new Set(g.req);
     const res = evaluate(info, sel, type, new Set());
-    feedback('bad', `Not ${LOWER[type]}`, (res.msg||'') + ` <br><span style="color:var(--muted)">It’s <b style="color:${gcol(g.type)}">${LOWER[g.type]}</b>. The clock is paused.</span>`);
+    feedback('bad', `Not ${LOWER[type]}`, (res.msg||'') + ` <br><span style="color:var(--muted)">It’s <b style="color:${gcol(g.type)}">${LOWER[g.type]}</b>. The clock is paused. Tap <b>Continue</b> (or the molecule, or press Enter) for the next one.</span>`);
   }
   checkBadges(); renderStatus(); renderActions();
 }
+
+function quickContinue(){ if (S.mode==='quick' && S.running && S.paused==='wrong') nextQuick(); }
 
 /* ----- study ----- */
 function showStudyInfo(type){
@@ -948,7 +954,7 @@ const GUIDE = {
   ketone:['A C=O whose carbon is bonded to two carbons.','the C=O carbon and its O'],
   acid:['A C=O whose carbon also has an O–H (–COOH). That O–H is not an alcohol!','the C=O carbon, its O, and the O–H'],
   amide:['A C=O whose carbon is bonded to an N. That N is not an amine!','the C=O carbon, its O, and the N'],
-  aromatic:['A benzene (phenyl) ring: six carbons with alternating double bonds.','all six ring carbons'],
+  aromatic:['A benzene ring of six carbons with alternating double bonds.','all six ring carbons'],
   ester:['A C=O whose carbon is bonded to an O that is bonded to another carbon. That O is not an ether!','the C=O carbon, its O, the single-bonded O, and the carbon attached to that O'],
 };
 const selectText = t => GUIDE[t][1];
@@ -987,7 +993,7 @@ function renderActions(){
   } else if (S.mode==='challenge'){
     h = `<button class="btn" id="clearBtn" ${S.running&&S.sel.size?'':'disabled'}>${ICON.clear}Clear</button><button class="btn" id="skipBtn" ${S.running&&!S.done?'':'disabled'}>Skip ${ICON.next}</button><button class="btn" id="endBtn" ${S.running?'':'disabled'}>End</button>`;
   } else if (S.mode==='quick'){
-    h = `<button class="btn primary ${S.running&&S.paused&&S.qWrong?'glow':''}" id="contBtn" ${S.running&&S.paused?'':'disabled'}>Continue ${ICON.next}</button><button class="btn" id="endBtn" ${S.running?'':'disabled'}>End</button>`;
+    h = `<button class="btn primary ${S.running&&S.paused==='wrong'?'glow':''}" id="contBtn" ${S.running&&S.paused==='wrong'?'':'disabled'}>Continue ${ICON.next}</button><button class="btn" id="endBtn" ${S.running?'':'disabled'}>End</button>`;
   } else {
     h = `<button class="btn primary" id="nextBtn">Next molecule ${ICON.next}</button>`;
   }
@@ -999,7 +1005,7 @@ function renderActions(){
   on('revealBtn', reveal);
   on('skipBtn', ()=>{ S.streak=0; feedback('near','Skipped','Streak reset. On to the next one!'); nextMolecule(); });
   on('endBtn', endRun);
-  on('contBtn', ()=>{ if (S.running) nextQuick(); renderStatus(); });
+  on('contBtn', quickContinue);
 }
 
 function giveHint(){
@@ -1026,8 +1032,8 @@ function reveal(){
 
 /* ---------------- modals ---------------- */
 $('guide').innerHTML = TYPES.map(t=>`<div class="g-item" style="--c:${gcol(t)}"><b>${NAME[t]}${t==='ester'?' <small>(Level 5 &amp; Challenge)</small>':''}</b>${GUIDE[t][0]}<br><small>Select: ${GUIDE[t][1]}</small></div>`).join('');
-function openModal(id){ $(id).hidden=false; $(id).querySelector('[data-close]').focus(); if (S.running) S.paused = S.paused || 'modal'; }
-function closeModals(){ document.querySelectorAll('.modal').forEach(m=>m.hidden=true); if (S.paused==='modal') S.paused=false; }
+function openModal(id){ $(id).hidden=false; $(id).querySelector('[data-close]').focus(); S.modal = true; }
+function closeModals(){ document.querySelectorAll('.modal').forEach(m=>m.hidden=true); S.modal = false; }
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{ if (e.target===m || e.target.closest('[data-close]')) closeModals(); }));
 $('helpBtn').onclick = ()=>openModal('helpModal');
 $('progBtn').onclick = ()=>{ renderProgress(); openModal('progModal'); };
@@ -1052,11 +1058,12 @@ $('themeBtn').onclick = ()=>{
 };
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setMode(t.dataset.mode));
 document.addEventListener('keydown', e=>{
-  if (e.target.closest('input,textarea')) return;
+  if (e.target.closest && e.target.closest('input,textarea')) return;
   if (e.key==='Escape'){ if (!document.querySelector('.modal:not([hidden])')){ S.sel.clear(); drawDynamic(); updateChips(); } closeModals(); return; }
   if (document.querySelector('.modal:not([hidden])')) return;
   const n = parseInt(e.key,10);
   if (n>=1 && n<=9){ const c = document.querySelectorAll('.chip')[n-1]; if (c) answer(c.dataset.type, c); }
+  if (e.key==='Enter' && S.mode==='quick' && S.paused==='wrong'){ e.preventDefault(); quickContinue(); return; }
   if (e.key==='Enter' && e.target===document.body){ const b = $('nextBtn')||$('contBtn'); if (b && !b.disabled) b.click(); }
 });
 window.addEventListener('resize', ()=>drawDynamic());
